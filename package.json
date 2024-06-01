@@ -1,6 +1,6 @@
 {
   "name": "com.parful.easyar",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "displayName": "EasyAR Kit",
   "description": "基于EasyAR的图像识别库, 依赖UNIHper框架",
   "unity": "2019.1",
