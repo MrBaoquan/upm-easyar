@@ -1,0 +1,19 @@
+{
+    "name": "EasyARKit.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:72b356f3a4fe4834d8eaa3c4f5af79cb",
+        "GUID:5dbd4fe25e6d7f3468615633f0efd70f"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

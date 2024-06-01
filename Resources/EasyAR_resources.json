@@ -1,0 +1,11 @@
+{
+    "Persistence": [
+        {
+            "driver": "Resources",
+            "type": "GameObject",
+            "path": "EasyAR_Assets"
+        }
+    ],
+
+    "EasyARSample": []
+}

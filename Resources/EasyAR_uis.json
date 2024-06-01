@@ -1,0 +1,10 @@
+{
+    "Persistence": {
+        "ARDebuggerUI": {
+            "asset": "ARDebuggerUI",
+            "type": "Normal",
+            "canvas": "CanvasDefault"
+        }
+    },
+    "EasyARSample": {}
+}
