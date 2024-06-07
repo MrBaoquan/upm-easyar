@@ -57,14 +57,14 @@ namespace EasyARKit
             await LoadARTextures();
             arTexIndexer.SetAndForceNotify(0);
 
-            _btnNext
-                .OnClickAsObservable()
+            _btnNext.onClick
+                .AsObservable()
                 .Subscribe(_ =>
                 {
                     arTexIndexer.Next();
                 });
-            _btnPrev
-                .OnClickAsObservable()
+            _btnPrev.onClick
+                .AsObservable()
                 .Subscribe(_ =>
                 {
                     arTexIndexer.Prev();
@@ -82,14 +82,14 @@ namespace EasyARKit
             _sliderX.mainSlider.maxValue = 0.5f;
             _sliderX.mainSlider.value = _arSettings.OffsetX;
             _sliderX.UpdateUI();
-            _sliderX.OnValueChangedAsObservable().Subscribe(_ => _offsetX.Value = _);
+            _sliderX.mainSlider.onValueChanged.AsObservable().Subscribe(_ => _offsetX.Value = _);
 
             var _sliderY = this.Get<SliderManager>("options/slider_y/slider");
             _sliderY.mainSlider.minValue = -0.5f;
             _sliderY.mainSlider.maxValue = 0.5f;
             _sliderY.mainSlider.value = _arSettings.OffsetY;
             _sliderY.UpdateUI();
-            _sliderY.OnValueChangedAsObservable().Subscribe(_ => _offsetY.Value = _);
+            _sliderY.mainSlider.onValueChanged.AsObservable().Subscribe(_ => _offsetY.Value = _);
 
             var _sliderWidth = this.Get<SliderManager>("options/slider_width/slider");
 
@@ -97,13 +97,15 @@ namespace EasyARKit
             _sliderWidth.mainSlider.maxValue = 0.9f;
             _sliderWidth.mainSlider.value = _arSettings.PhotoWidth;
             _sliderWidth.UpdateUI();
-            _sliderWidth.OnValueChangedAsObservable().Subscribe(_ => _width.Value = _);
+            _sliderWidth.mainSlider.onValueChanged.AsObservable().Subscribe(_ => _width.Value = _);
 
             var _sliderHeight = this.Get<SliderManager>("options/slider_height/slider");
             _sliderHeight.mainSlider.minValue = 0.1f;
             _sliderHeight.mainSlider.maxValue = 0.9f;
             _sliderHeight.mainSlider.value = _arSettings.PhotoHeight;
-            _sliderHeight.OnValueChangedAsObservable().Subscribe(_ => _height.Value = _);
+            _sliderHeight.mainSlider.onValueChanged
+                .AsObservable()
+                .Subscribe(_ => _height.Value = _);
 
             _width.Value = _arSettings.PhotoWidth;
             _height.Value = _arSettings.PhotoHeight;
@@ -117,6 +119,14 @@ namespace EasyARKit
                     _arSettings.OffsetY = Mathf.Clamp(_offsetY.Value, -0.5f, 0.5f);
 
                     _arSettings.Serialize();
+
+                    Debug.LogWarning(
+                        $"offsetX: {_arSettings.OffsetX} offsetY: {_arSettings.OffsetY} width: {_arSettings.PhotoWidth} height: {_arSettings.PhotoHeight}"
+                    );
+                    var _posX = _arSettings.OffsetX * (Screen.width / 2);
+                    Debug.Log(
+                        $"screenWidth: {Screen.width} screenHeight: {Screen.height} _posX: {_posX}"
+                    );
 
                     var _sizeX = _arSettings.PhotoWidth * Screen.width;
                     var _sizeY = _arSettings.PhotoHeight * Screen.height;
@@ -149,8 +159,8 @@ namespace EasyARKit
             _btnDelete.gameObject.SetActive(arTargets.Count > 0);
             _btnTakePhoto.gameObject.SetActive(true);
 
-            _btnView
-                .OnClickAsObservable()
+            _btnView.onClick
+                .AsObservable()
                 .Subscribe(_ =>
                 {
                     _btnView.gameObject.SetActive(false);
@@ -161,8 +171,8 @@ namespace EasyARKit
                     Managements.UI.HideSaveFileDialog();
                 });
 
-            _btnTakePhoto
-                .OnClickAsObservable()
+            _btnTakePhoto.onClick
+                .AsObservable()
                 .Subscribe(_ =>
                 {
                     _btnDelete.gameObject.SetActive(false);
@@ -171,8 +181,8 @@ namespace EasyARKit
                     _btnSave.gameObject.SetActive(true);
                     photoRect.SetChildrenActive(false);
                 });
-            _btnSave
-                .OnClickAsObservable()
+            _btnSave.onClick
+                .AsObservable()
                 .Subscribe(_ =>
                 {
                     Managements.UI.ShowSaveFileDialog(
@@ -248,8 +258,8 @@ namespace EasyARKit
                     );
                 });
 
-            _btnDelete
-                .OnClickAsObservable()
+            _btnDelete.onClick
+                .AsObservable()
                 .Subscribe(_ =>
                 {
                     Managements.UI.ShowConfirmPanel(

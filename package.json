@@ -1,6 +1,6 @@
 {
   "name": "com.parful.easyar",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "EasyAR Kit",
   "description": "基于EasyAR的图像识别库, 依赖UNIHper框架",
   "unity": "2019.1",
@@ -8,7 +8,8 @@
   "changelogUrl": "http://upm.andcrane.com:4873/-/web/detail/com.parful.unihper",
   "licensesUrl": "https://example.com/licensing.html",
   "dependencies": {
-    "com.parful.unihper":"1.24.601",
+    "com.parful.unihper":"1.24.607",
+    "com.software.muip":"1.0.0",
     "com.easyar.sense":"4.6.2"
  },
  "keywords": [

@@ -8,6 +8,14 @@ using UniRx;
 
 public class EasyARSampleScript : SceneScriptBase
 {
+#if UNITY_EDITOR
+    [UnityEditor.InitializeOnLoadMethod, UnityEditor.InitializeOnEnterPlayMode]
+    public static void AddAssemblyToUNIHper()
+    {
+        var _currentAssembly = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+        UNIHperSettings.AddAssemblyToSettingsIfNotExists(_currentAssembly);
+    }
+#endif
 
     private void Awake()
     {
