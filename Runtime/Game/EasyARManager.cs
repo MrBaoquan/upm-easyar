@@ -93,6 +93,14 @@ namespace EasyARKit
                     var _arGO = new GameObject();
                     _arGO.name = _arTarget.Name;
                     _arGO.transform.SetParent(ARTrackersRoot);
+                    if (Managements.Resource.Exists<GameObject>(_arTarget.ModelAsset))
+                    {
+                        var _model = Managements.Resource.Get<GameObject>(_arTarget.ModelAsset);
+                        var _modelInstance = Instantiate(_model, _arGO.transform);
+                        _modelInstance.transform.localPosition = Vector3.zero;
+                        _arTarget.ARModel = _modelInstance;
+                        _arTarget.SyncModelTransform();
+                    }
 
                     var _imageARTargetController = _arGO.AddComponent<ImageTargetController>();
                     Debug.Log($"Create AR Target {_arTarget.Name}");

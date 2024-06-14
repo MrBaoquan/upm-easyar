@@ -18,8 +18,32 @@ namespace EasyARKit
         [XmlAttribute]
         public string Path = "default.jpg";
 
+        [XmlAttribute]
+        public string ModelAsset = "";
+
+        [XmlAttribute]
+        public float ModelScale = 1;
+
+        [XmlAttribute]
+        public float ModelEulerX = 0;
+
+        [XmlAttribute]
+        public float ModelEulerY = 0;
+
+        [XmlAttribute]
+        public float ModelEulerZ = 0;
+
         [XmlIgnore]
         public Texture2D ARTexture;
+
+        [XmlIgnore]
+        public GameObject ARModel = null;
+
+        public void SyncModelTransform(){
+            if(ARModel==null) return;
+            ARModel.transform.localScale = Vector3.one * ModelScale;
+            ARModel.transform.localEulerAngles = new Vector3(ModelEulerX, ModelEulerY, ModelEulerZ);
+        }
 
         public async Task<Texture2D> LoadARTexture()
         {
@@ -112,13 +136,17 @@ namespace EasyARKit
                 .GetFiles(arTargetDir, "*.*", SearchOption.TopDirectoryOnly)
                 .Where(_path => _path.EndsWith(".jpg") || _path.EndsWith(".png"))
                 .Select(
-                    _path =>
-                        new ARTarget
+                    _path =>{
+                        var _fileName = Path.GetFileNameWithoutExtension(_path);
+                        return new ARTarget
                         {
                             Path = $"ARTargets/{Path.GetFileName(_path)}",
-                            Name = Path.GetFileNameWithoutExtension(_path)
-                        }
-                )
+                            Name = _fileName,
+                            ModelAsset = $"AR_Model_{_fileName}",
+                        };
+                    }
+                        
+                ).Select(_arTarget=>ARTargets.FirstOrDefault(_target=>_target.Name==_arTarget.Name)??_arTarget)
                 .ToList();
         }
     }

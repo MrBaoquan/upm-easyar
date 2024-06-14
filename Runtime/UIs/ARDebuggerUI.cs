@@ -36,8 +36,7 @@ namespace EasyARKit
         private async void Start()
         {
             var _rawImage = this.Get<RawImage>("img_outer/img_texture");
-            var _btnNext = this.Get<ButtonManager>("img_outer/btn_next");
-            var _btnPrev = this.Get<ButtonManager>("img_outer/btn_prev");
+
             arTexIndexer
                 .OnIndexChangedAsObservable()
                 .Subscribe(_idx =>
@@ -53,9 +52,34 @@ namespace EasyARKit
                     _rawImage.texture = _arTarget.ARTexture;
                     this.Get<TextMeshProUGUI>("img_outer/text_title").text =
                         $"[{_idx}]  {_arTarget.Name}";
+
+                    this.Get<UInput_Slider>("ar_options/input_scale").Value = _arTarget.ModelScale;
+                    this.Get<UInput_Slider>("ar_options/input_rotate_x").Value =
+                        _arTarget.ModelEulerX;
+                    this.Get<UInput_Slider>("ar_options/input_rotate_y").Value =
+                        _arTarget.ModelEulerY;
+                    this.Get<UInput_Slider>("ar_options/input_rotate_z").Value =
+                        _arTarget.ModelEulerZ;
+
+                    this.Get("ar_options").SetActive(_arTarget.ARModel != null);
                 });
+            registerModelInputEvents();
+            registerCameraInputEvents();
+
             await LoadARTextures();
             arTexIndexer.SetAndForceNotify(0);
+        }
+
+        private void registerCameraInputEvents()
+        {
+            var _btnNext = this.Get<ButtonManager>("img_outer/btn_next");
+            var _btnPrev = this.Get<ButtonManager>("img_outer/btn_prev");
+            this.Get<Toggle>("img_outer/toggle_img")
+                .OnValueChangedAsObservable()
+                .Subscribe(_enabled =>
+                {
+                    this.Get("img_outer/img_texture").SetActive(_enabled);
+                });
 
             _btnNext.onClick
                 .AsObservable()
@@ -77,21 +101,21 @@ namespace EasyARKit
             ReactiveProperty<float> _width = new ReactiveProperty<float>(_arSettings.PhotoWidth);
             ReactiveProperty<float> _height = new ReactiveProperty<float>(_arSettings.PhotoHeight);
 
-            var _sliderX = this.Get<SliderManager>("options/slider_x/slider");
+            var _sliderX = this.Get<SliderManager>("camera_options/slider_x/slider");
             _sliderX.mainSlider.minValue = -0.5f;
             _sliderX.mainSlider.maxValue = 0.5f;
             _sliderX.mainSlider.value = _arSettings.OffsetX;
             _sliderX.UpdateUI();
             _sliderX.mainSlider.onValueChanged.AsObservable().Subscribe(_ => _offsetX.Value = _);
 
-            var _sliderY = this.Get<SliderManager>("options/slider_y/slider");
+            var _sliderY = this.Get<SliderManager>("camera_options/slider_y/slider");
             _sliderY.mainSlider.minValue = -0.5f;
             _sliderY.mainSlider.maxValue = 0.5f;
             _sliderY.mainSlider.value = _arSettings.OffsetY;
             _sliderY.UpdateUI();
             _sliderY.mainSlider.onValueChanged.AsObservable().Subscribe(_ => _offsetY.Value = _);
 
-            var _sliderWidth = this.Get<SliderManager>("options/slider_width/slider");
+            var _sliderWidth = this.Get<SliderManager>("camera_options/slider_width/slider");
 
             _sliderWidth.mainSlider.minValue = 0.1f;
             _sliderWidth.mainSlider.maxValue = 0.9f;
@@ -99,7 +123,7 @@ namespace EasyARKit
             _sliderWidth.UpdateUI();
             _sliderWidth.mainSlider.onValueChanged.AsObservable().Subscribe(_ => _width.Value = _);
 
-            var _sliderHeight = this.Get<SliderManager>("options/slider_height/slider");
+            var _sliderHeight = this.Get<SliderManager>("camera_options/slider_height/slider");
             _sliderHeight.mainSlider.minValue = 0.1f;
             _sliderHeight.mainSlider.maxValue = 0.9f;
             _sliderHeight.mainSlider.value = _arSettings.PhotoHeight;
@@ -132,21 +156,21 @@ namespace EasyARKit
                     var _sizeY = _arSettings.PhotoHeight * Screen.height;
 
                     photoRect.anchoredPosition = new Vector2(
-                        _arSettings.OffsetX * (Screen.width - _sizeX),
-                        _arSettings.OffsetY * (Screen.height - _sizeY)
+                        (int)(_arSettings.OffsetX * (Screen.width - _sizeX)),
+                        (int)(_arSettings.OffsetY * (Screen.height - _sizeY))
                     );
                     photoRect.sizeDelta = new Vector2(
-                        _arSettings.PhotoWidth * Screen.width + 2,
-                        _arSettings.PhotoHeight * Screen.height + 2
+                        (int)(_arSettings.PhotoWidth * Screen.width + 2),
+                        (int)(_arSettings.PhotoHeight * Screen.height + 2)
                     );
                 })
                 .AddTo(this);
 
             // 按钮组操作
-            var _btnDelete = this.Get<ButtonManager>("options/btn_group/btn_delete");
-            var _btnView = this.Get<ButtonManager>("options/btn_group/btn_view");
-            var _btnTakePhoto = this.Get<ButtonManager>("options/btn_group/btn_takePhoto");
-            var _btnSave = this.Get<ButtonManager>("options/btn_group/btn_savePhoto");
+            var _btnDelete = this.Get<ButtonManager>("camera_options/btn_group/btn_delete");
+            var _btnView = this.Get<ButtonManager>("camera_options/btn_group/btn_view");
+            var _btnTakePhoto = this.Get<ButtonManager>("camera_options/btn_group/btn_takePhoto");
+            var _btnSave = this.Get<ButtonManager>("camera_options/btn_group/btn_savePhoto");
 
             _btnDelete.checkForDoubleClick = false;
             _btnView.checkForDoubleClick = false;
@@ -213,7 +237,7 @@ namespace EasyARKit
                                 - photoRect.sizeDelta.x / 2;
                             var _y =
                                 Screen.height / 2
-                                - photoRect.anchoredPosition.y / 2
+                                - photoRect.anchoredPosition.y
                                 - photoRect.sizeDelta.y / 2;
                             _x = Mathf.Clamp(_x, 0, Screen.width);
                             _y = Mathf.Clamp(_y, 0, Screen.height);
@@ -276,6 +300,50 @@ namespace EasyARKit
                             }
                         }
                     );
+                });
+        }
+
+        private void registerModelInputEvents()
+        {
+            this.Get<UInput_Slider>("ar_options/input_scale")
+                .OnValueChangedAsObservable()
+                .Subscribe(_ =>
+                {
+                    var _arTarget = currentARTarget;
+                    if (_arTarget == null)
+                        return;
+                    _arTarget.ModelScale = _;
+                    _arTarget.SyncModelTransform();
+                });
+
+            this.Get<UInput_Slider>("ar_options/input_rotate_x")
+                .OnValueChangedAsObservable()
+                .Subscribe(_ =>
+                {
+                    if (currentARTarget == null)
+                        return;
+                    currentARTarget.ModelEulerX = _;
+                    currentARTarget.SyncModelTransform();
+                });
+
+            this.Get<UInput_Slider>("ar_options/input_rotate_y")
+                .OnValueChangedAsObservable()
+                .Subscribe(_ =>
+                {
+                    if (currentARTarget == null)
+                        return;
+                    currentARTarget.ModelEulerY = _;
+                    currentARTarget.SyncModelTransform();
+                });
+
+            this.Get<UInput_Slider>("ar_options/input_rotate_z")
+                .OnValueChangedAsObservable()
+                .Subscribe(_ =>
+                {
+                    if (currentARTarget == null)
+                        return;
+                    currentARTarget.ModelEulerZ = _;
+                    currentARTarget.SyncModelTransform();
                 });
         }
 
