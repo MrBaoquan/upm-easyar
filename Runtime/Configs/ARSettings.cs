@@ -33,6 +33,15 @@ namespace EasyARKit
         [XmlAttribute]
         public float ModelEulerZ = 0;
 
+        [XmlAttribute]
+        public float ModelOffsetX = 0;
+
+        [XmlAttribute]
+        public float ModelOffsetY = 0;
+
+        [XmlAttribute]
+        public float ModelOffsetZ = 0;
+
         [XmlIgnore]
         public Texture2D ARTexture;
 
@@ -43,6 +52,7 @@ namespace EasyARKit
             if(ARModel==null) return;
             ARModel.transform.localScale = Vector3.one * ModelScale;
             ARModel.transform.localEulerAngles = new Vector3(ModelEulerX, ModelEulerY, ModelEulerZ);
+            ARModel.transform.localPosition = new Vector3(ModelOffsetX, ModelOffsetY, ModelOffsetZ);
         }
 
         public async Task<Texture2D> LoadARTexture()
@@ -147,6 +157,10 @@ namespace EasyARKit
                     }
                         
                 ).Select(_arTarget=>ARTargets.FirstOrDefault(_target=>_target.Name==_arTarget.Name)??_arTarget)
+                .Select(_arTarget=>{
+                    _arTarget.ModelAsset = _arTarget.ModelAsset==string.Empty?$"AR_Model_{_arTarget.Name}":_arTarget.ModelAsset;
+                    return _arTarget;
+                })
                 .ToList();
         }
     }

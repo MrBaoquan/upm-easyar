@@ -61,6 +61,13 @@ namespace EasyARKit
                     this.Get<UInput_Slider>("ar_options/input_rotate_z").Value =
                         _arTarget.ModelEulerZ;
 
+                    this.Get<UInput_Slider>("ar_options/input_offset_x").Value =
+                        _arTarget.ModelOffsetX;
+                    this.Get<UInput_Slider>("ar_options/input_offset_y").Value =
+                        _arTarget.ModelOffsetY;
+                    this.Get<UInput_Slider>("ar_options/input_offset_z").Value =
+                        _arTarget.ModelOffsetZ;
+
                     this.Get("ar_options").SetActive(_arTarget.ARModel != null);
                 });
             registerModelInputEvents();
@@ -204,6 +211,7 @@ namespace EasyARKit
                     _btnView.gameObject.SetActive(arTargets.Count > 0);
                     _btnSave.gameObject.SetActive(true);
                     photoRect.SetChildrenActive(false);
+                    photoRect.Get("anchor").SetActive(true);
                 });
             _btnSave.onClick
                 .AsObservable()
@@ -345,6 +353,36 @@ namespace EasyARKit
                     currentARTarget.ModelEulerZ = _;
                     currentARTarget.SyncModelTransform();
                 });
+
+            this.Get<UInput_Slider>("ar_options/input_offset_x")
+                .OnValueChangedAsObservable()
+                .Subscribe(_ =>
+                {
+                    if (currentARTarget == null)
+                        return;
+                    currentARTarget.ModelOffsetX = _;
+                    currentARTarget.SyncModelTransform();
+                });
+
+            this.Get<UInput_Slider>("ar_options/input_offset_y")
+                .OnValueChangedAsObservable()
+                .Subscribe(_ =>
+                {
+                    if (currentARTarget == null)
+                        return;
+                    currentARTarget.ModelOffsetY = _;
+                    currentARTarget.SyncModelTransform();
+                });
+
+            this.Get<UInput_Slider>("ar_options/input_offset_z")
+                .OnValueChangedAsObservable()
+                .Subscribe(_ =>
+                {
+                    if (currentARTarget == null)
+                        return;
+                    currentARTarget.ModelOffsetZ = _;
+                    currentARTarget.SyncModelTransform();
+                });
         }
 
         // 拍照
@@ -383,7 +421,15 @@ namespace EasyARKit
         private void Update() { }
 
         // Called when this ui is loaded
-        protected override void OnLoaded() { }
+        protected override void OnLoaded()
+        {
+            this.Get<Button>("btn_save")
+                .OnClickAsObservable()
+                .Subscribe(_ =>
+                {
+                    Managements.Config.Serialize<ARSettings>();
+                });
+        }
 
         // Called when this ui is shown
         protected override void OnShown() { }

@@ -97,7 +97,6 @@ namespace EasyARKit
                     {
                         var _model = Managements.Resource.Get<GameObject>(_arTarget.ModelAsset);
                         var _modelInstance = Instantiate(_model, _arGO.transform);
-                        _modelInstance.transform.localPosition = Vector3.zero;
                         _arTarget.ARModel = _modelInstance;
                         _arTarget.SyncModelTransform();
                     }
