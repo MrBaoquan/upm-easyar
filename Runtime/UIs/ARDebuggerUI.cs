@@ -6,11 +6,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UNIHper;
-using DNHper;
-using UnityEngine.InputSystem;
 using Michsky.MUIP;
 using UniRx;
 using TMPro;
+using System;
 
 namespace EasyARKit
 {
@@ -18,9 +17,17 @@ namespace EasyARKit
     {
         List<ARTarget> arTargets => Managements.Config.Get<ARSettings>().ARTargets;
         Indexer arTexIndexer = new Indexer(0);
-        ARTarget currentARTarget => arTargets.Count > 0 ? arTargets[arTexIndexer.Current] : null;
+        public int ARTexIndex => arTexIndexer.Current;
+        public ARTarget currentARTarget =>
+            arTargets.Count > 0 ? arTargets[arTexIndexer.Current] : null;
+        public string currentARName => currentARTarget?.Name;
 
         private RectTransform photoRect => this.Get<RectTransform>("img_outer");
+
+        public IObservable<int> OnARTexIndexerChangedAsObservable()
+        {
+            return arTexIndexer.OnIndexChangedAsObservable();
+        }
 
         private async Task LoadARTextures()
         {
@@ -32,11 +39,21 @@ namespace EasyARKit
             arTexIndexer.SetToMin();
         }
 
+        public void SyncEditorProperties2ARTransform(ARTransform _arTransform)
+        {
+            this.Get<UInput_Slider>("ar_options/input_scale").Value = _arTransform.ModelScale;
+            this.Get<UInput_Slider>("ar_options/input_rotate_x").Value = _arTransform.ModelEulerX;
+            this.Get<UInput_Slider>("ar_options/input_rotate_y").Value = _arTransform.ModelEulerY;
+            this.Get<UInput_Slider>("ar_options/input_rotate_z").Value = _arTransform.ModelEulerZ;
+            this.Get<UInput_Slider>("ar_options/input_offset_x").Value = _arTransform.ModelOffsetX;
+            this.Get<UInput_Slider>("ar_options/input_offset_y").Value = _arTransform.ModelOffsetY;
+            this.Get<UInput_Slider>("ar_options/input_offset_z").Value = _arTransform.ModelOffsetZ;
+        }
+
         // Start is called before the first frame update
         private async void Start()
         {
             var _rawImage = this.Get<RawImage>("img_outer/img_texture");
-
             arTexIndexer
                 .OnIndexChangedAsObservable()
                 .Subscribe(_idx =>
@@ -52,22 +69,7 @@ namespace EasyARKit
                     _rawImage.texture = _arTarget.ARTexture;
                     this.Get<TextMeshProUGUI>("img_outer/text_title").text =
                         $"[{_idx}]  {_arTarget.Name}";
-
-                    this.Get<UInput_Slider>("ar_options/input_scale").Value = _arTarget.ModelScale;
-                    this.Get<UInput_Slider>("ar_options/input_rotate_x").Value =
-                        _arTarget.ModelEulerX;
-                    this.Get<UInput_Slider>("ar_options/input_rotate_y").Value =
-                        _arTarget.ModelEulerY;
-                    this.Get<UInput_Slider>("ar_options/input_rotate_z").Value =
-                        _arTarget.ModelEulerZ;
-
-                    this.Get<UInput_Slider>("ar_options/input_offset_x").Value =
-                        _arTarget.ModelOffsetX;
-                    this.Get<UInput_Slider>("ar_options/input_offset_y").Value =
-                        _arTarget.ModelOffsetY;
-                    this.Get<UInput_Slider>("ar_options/input_offset_z").Value =
-                        _arTarget.ModelOffsetZ;
-
+                    this.SyncEditorProperties2ARTransform(_arTarget);
                     this.Get("ar_options").SetActive(_arTarget.ARModel != null);
                 });
             registerModelInputEvents();
@@ -321,7 +323,7 @@ namespace EasyARKit
                     if (_arTarget == null)
                         return;
                     _arTarget.ModelScale = _;
-                    _arTarget.SyncModelTransform();
+                    _arTarget.InvokeModelChangedEvent();
                 });
 
             this.Get<UInput_Slider>("ar_options/input_rotate_x")
@@ -331,7 +333,7 @@ namespace EasyARKit
                     if (currentARTarget == null)
                         return;
                     currentARTarget.ModelEulerX = _;
-                    currentARTarget.SyncModelTransform();
+                    currentARTarget.InvokeModelChangedEvent();
                 });
 
             this.Get<UInput_Slider>("ar_options/input_rotate_y")
@@ -341,7 +343,7 @@ namespace EasyARKit
                     if (currentARTarget == null)
                         return;
                     currentARTarget.ModelEulerY = _;
-                    currentARTarget.SyncModelTransform();
+                    currentARTarget.InvokeModelChangedEvent();
                 });
 
             this.Get<UInput_Slider>("ar_options/input_rotate_z")
@@ -351,7 +353,7 @@ namespace EasyARKit
                     if (currentARTarget == null)
                         return;
                     currentARTarget.ModelEulerZ = _;
-                    currentARTarget.SyncModelTransform();
+                    currentARTarget.InvokeModelChangedEvent();
                 });
 
             this.Get<UInput_Slider>("ar_options/input_offset_x")
@@ -361,7 +363,7 @@ namespace EasyARKit
                     if (currentARTarget == null)
                         return;
                     currentARTarget.ModelOffsetX = _;
-                    currentARTarget.SyncModelTransform();
+                    currentARTarget.InvokeModelChangedEvent();
                 });
 
             this.Get<UInput_Slider>("ar_options/input_offset_y")
@@ -371,7 +373,7 @@ namespace EasyARKit
                     if (currentARTarget == null)
                         return;
                     currentARTarget.ModelOffsetY = _;
-                    currentARTarget.SyncModelTransform();
+                    currentARTarget.InvokeModelChangedEvent();
                 });
 
             this.Get<UInput_Slider>("ar_options/input_offset_z")
@@ -381,7 +383,7 @@ namespace EasyARKit
                     if (currentARTarget == null)
                         return;
                     currentARTarget.ModelOffsetZ = _;
-                    currentARTarget.SyncModelTransform();
+                    currentARTarget.InvokeModelChangedEvent();
                 });
         }
 

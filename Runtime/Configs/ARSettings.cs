@@ -7,11 +7,59 @@ using System.Xml.Serialization;
 using UnityEngine;
 using UNIHper;
 using UniRx;
+using UnityEngine.Events;
 
 namespace EasyARKit
+{public class ARTransform
 {
-    public class ARTarget
+    [XmlAttribute]
+    public float ModelScale = 1;
+
+    [XmlAttribute]
+    public float ModelEulerX = 0;
+
+    [XmlAttribute]
+    public float ModelEulerY = 0;
+
+    [XmlAttribute]
+    public float ModelEulerZ = 0;
+
+    [XmlAttribute]
+    public float ModelOffsetX = 0;
+
+    [XmlAttribute]
+    public float ModelOffsetY = 0;
+
+    [XmlAttribute]
+    public float ModelOffsetZ = 0;
+
+    public void SyncFromARTarget(ARTransform aRTarget)
     {
+        if (aRTarget == null)
+            return;
+        this.ModelScale = aRTarget.ModelScale;
+        this.ModelEulerX = aRTarget.ModelEulerX;
+        this.ModelEulerY = aRTarget.ModelEulerY;
+        this.ModelEulerZ = aRTarget.ModelEulerZ;
+        this.ModelOffsetX = aRTarget.ModelOffsetX;
+        this.ModelOffsetY = aRTarget.ModelOffsetY;
+        this.ModelOffsetZ = aRTarget.ModelOffsetZ;
+    }
+
+    public void SyncTargetTransform(Transform target)
+    {
+        if (target == null)
+            return;
+        target.localScale = new Vector3(ModelScale, ModelScale, ModelScale);
+        target.localEulerAngles = new Vector3(ModelEulerX, ModelEulerY, ModelEulerZ);
+        target.localPosition = new Vector3(ModelOffsetX, ModelOffsetY, ModelOffsetZ);
+    }
+}
+    public class ARTarget : ARTransform
+    {
+        // 是否忽略位置信息应用到ARModel
+        public static bool IngoreTransform = false;
+
         [XmlAttribute]
         public string Name = string.Empty;
 
@@ -21,26 +69,7 @@ namespace EasyARKit
         [XmlAttribute]
         public string ModelAsset = "";
 
-        [XmlAttribute]
-        public float ModelScale = 1;
-
-        [XmlAttribute]
-        public float ModelEulerX = 0;
-
-        [XmlAttribute]
-        public float ModelEulerY = 0;
-
-        [XmlAttribute]
-        public float ModelEulerZ = 0;
-
-        [XmlAttribute]
-        public float ModelOffsetX = 0;
-
-        [XmlAttribute]
-        public float ModelOffsetY = 0;
-
-        [XmlAttribute]
-        public float ModelOffsetZ = 0;
+       
 
         [XmlIgnore]
         public Texture2D ARTexture;
@@ -48,12 +77,19 @@ namespace EasyARKit
         [XmlIgnore]
         public GameObject ARModel = null;
 
-        public void SyncModelTransform(){
-            if(ARModel==null) return;
-            ARModel.transform.localScale = Vector3.one * ModelScale;
-            ARModel.transform.localEulerAngles = new Vector3(ModelEulerX, ModelEulerY, ModelEulerZ);
-            ARModel.transform.localPosition = new Vector3(ModelOffsetX, ModelOffsetY, ModelOffsetZ);
+        [XmlIgnore]
+        public UnityEvent<ARTarget> OnModelPropertyChanged = new UnityEvent<ARTarget>();
+
+        public void InvokeModelChangedEvent(){
+            OnModelPropertyChanged?.Invoke(this);
+            SyncModelTransform();
         }
+
+        public void SyncModelTransform(){
+            if(IngoreTransform) return;
+            SyncTargetTransform(ARModel?.transform);
+        }
+
 
         public async Task<Texture2D> LoadARTexture()
         {

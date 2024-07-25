@@ -3,16 +3,17 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using easyar;
-using UniRx;
+
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
 using UNIHper;
 using UnityEngine.InputSystem;
-using DigitalRubyShared;
 
 namespace EasyARKit
 {
+    using UniRx;
+
     public class EasyARManager : SingletonBehaviour<EasyARManager>
     {
 #if UNITY_EDITOR
