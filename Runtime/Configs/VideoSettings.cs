@@ -61,7 +61,7 @@ public class VideoSettings : UConfig
                 .GetFiles(videoDir, "*.mp4")
                 .Select(_path => new VideoInfo { Path = "Videos/" + Path.GetFileName(_path) })
                 .ToList();
-            this.Serialize();
+            this.Save();
         }
     }
 }

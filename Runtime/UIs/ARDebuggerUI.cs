@@ -10,9 +10,11 @@ using Michsky.MUIP;
 using UniRx;
 using TMPro;
 using System;
+using UNIHper.UI;
 
 namespace EasyARKit
 {
+    [UIPage(Asset = "ARDebuggerUI", Order = -1, Type = UIType.Popup)]
     public class ARDebuggerUI : UIBase
     {
         List<ARTarget> arTargets => Managements.Config.Get<ARSettings>().ARTargets;
@@ -26,7 +28,7 @@ namespace EasyARKit
 
         public IObservable<int> OnARTexIndexerChangedAsObservable()
         {
-            return arTexIndexer.OnIndexChangedAsObservable();
+            return arTexIndexer.OnValueChangedAsObservable();
         }
 
         private async Task LoadARTextures()
@@ -55,7 +57,7 @@ namespace EasyARKit
         {
             var _rawImage = this.Get<RawImage>("img_outer/img_texture");
             arTexIndexer
-                .OnIndexChangedAsObservable()
+                .OnValueChangedAsObservable()
                 .Subscribe(_idx =>
                 {
                     if (arTargets.Count <= 0)
@@ -76,7 +78,7 @@ namespace EasyARKit
             registerCameraInputEvents();
 
             await LoadARTextures();
-            arTexIndexer.SetAndForceNotify(0);
+            arTexIndexer.SetValueAndForceNotify(0);
         }
 
         private void registerCameraInputEvents()
@@ -151,7 +153,7 @@ namespace EasyARKit
                     _arSettings.OffsetX = Mathf.Clamp(_offsetX.Value, -0.5f, 0.5f);
                     _arSettings.OffsetY = Mathf.Clamp(_offsetY.Value, -0.5f, 0.5f);
 
-                    _arSettings.Serialize();
+                    _arSettings.Save();
 
                     Debug.LogWarning(
                         $"offsetX: {_arSettings.OffsetX} offsetY: {_arSettings.OffsetY} width: {_arSettings.PhotoWidth} height: {_arSettings.PhotoHeight}"
@@ -429,7 +431,7 @@ namespace EasyARKit
                 .OnClickAsObservable()
                 .Subscribe(_ =>
                 {
-                    Managements.Config.Serialize<ARSettings>();
+                    Managements.Config.Save<ARSettings>();
                 });
         }
 

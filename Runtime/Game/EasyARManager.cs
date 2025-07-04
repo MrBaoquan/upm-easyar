@@ -12,6 +12,8 @@ using UnityEngine.InputSystem;
 
 namespace EasyARKit
 {
+    using UNIHper.UI;
+
     using UniRx;
 
     public class EasyARManager : SingletonBehaviour<EasyARManager>
@@ -205,8 +207,14 @@ namespace EasyARKit
         // Update is called once per frame
         void Update()
         {
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR
+#if (UNITY_STANDALONE_WIN || UNITY_EDITOR) && ENABLE_INPUT_SYSTEM
+
             if (Keyboard.current.f5Key.wasPressedThisFrame)
+            {
+                ToggleDebugUI();
+            }
+#else
+            if (Input.GetKeyDown(KeyCode.F5))
             {
                 ToggleDebugUI();
             }

@@ -152,7 +152,7 @@ namespace EasyARKit
             var _removed = ARTargets.Remove(arTarget);
             if (_removed)
             {
-                this.Serialize();
+                this.Save();
                 File.Delete(arTarget.ARTextureFullPath);
             }
             return _removed;
@@ -170,7 +170,7 @@ namespace EasyARKit
         protected override void OnLoaded()
         {
             RefreshARTargets();
-            this.Serialize();
+            this.Save();
         }
 
         public void RefreshARTargets()
