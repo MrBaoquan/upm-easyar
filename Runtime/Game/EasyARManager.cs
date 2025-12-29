@@ -15,6 +15,7 @@ namespace EasyARKit
     using UNIHper.UI;
 
     using UniRx;
+    using UniRx.Triggers;
 
     public class EasyARManager : SingletonBehaviour<EasyARManager>
     {
@@ -162,8 +163,7 @@ namespace EasyARKit
             this.Get<CameraImageRenderer>("Camera Device")
                 .RequestTargetTexture(targetTextureEventHandler);
 
-            Observable
-                .OnceApplicationQuit()
+            this.OnDestroyAsObservable()
                 .Subscribe(_ =>
                 {
                     this.Get<CameraImageRenderer>("Camera Device")
