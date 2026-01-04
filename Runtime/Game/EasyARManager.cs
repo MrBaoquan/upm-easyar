@@ -19,6 +19,13 @@ namespace EasyARKit
 
     public class EasyARManager : SingletonBehaviour<EasyARManager>
     {
+        private const int MAX_CAMERA_OPEN_RETRIES = 5;
+        private const float RETRY_DELAY_SECONDS = 2f;
+
+        private string[] lastDeviceNames;
+        private bool isRestarting;
+        private float lastChangeTime;
+
 #if UNITY_EDITOR
         [UnityEditor.InitializeOnLoadMethod, UnityEditor.InitializeOnEnterPlayMode]
         public static void AddAssemblyToUNIHper()
@@ -155,6 +162,8 @@ namespace EasyARKit
         // Start is called before the first frame update
         void Start()
         {
+            EasyARController.Instance.ShowPopupMessage = false;
+
             Action<Camera, RenderTexture> targetTextureEventHandler = (_camera, _texture) =>
             {
                 RenderTexture = _texture;
@@ -182,6 +191,37 @@ namespace EasyARKit
                         {
                             ToggleDebugUI();
                         });
+                });
+
+            Observable.FromCoroutine(() => InitialCameraOpenWithRetry()).Subscribe();
+
+            lastDeviceNames = WebCamTexture.devices.Select(d => d.name).ToArray();
+
+            Observable
+                .Interval(TimeSpan.FromSeconds(1))
+                .Where(_ => !isRestarting)
+                .Subscribe(_ =>
+                {
+                    var currentDevices = WebCamTexture.devices;
+                    var currentDeviceNames = currentDevices.Select(d => d.name).ToArray();
+
+                    if (!lastDeviceNames.SequenceEqual(currentDeviceNames))
+                    {
+                        var currentTime = Time.realtimeSinceStartup;
+                        if (currentTime - lastChangeTime < 1.5f)
+                        {
+                            return;
+                        }
+
+                        lastChangeTime = currentTime;
+                        lastDeviceNames = currentDeviceNames;
+
+                        Debug.Log(
+                            $"Camera devices changed. Old: {string.Join(",", lastDeviceNames)}, New: {string.Join(",", currentDeviceNames)}"
+                        );
+
+                        RestartCameraAsync().Subscribe();
+                    }
                 });
         }
 
@@ -219,6 +259,242 @@ namespace EasyARKit
                 ToggleDebugUI();
             }
 #endif
+        }
+
+        private IEnumerator InitialCameraOpenWithRetry()
+        {
+            yield return new WaitForSeconds(1f);
+
+            var cameraDevice = GameObject.Find("Camera Device");
+            if (cameraDevice == null)
+            {
+                Debug.LogError("Camera Device not found in scene!");
+                yield break;
+            }
+
+            var cameraSource = cameraDevice.GetComponent<CameraDeviceFrameSource>();
+            if (cameraSource == null)
+            {
+                Debug.LogError("CameraDeviceFrameSource component not found!");
+                yield break;
+            }
+
+            for (int attempt = 1; attempt <= MAX_CAMERA_OPEN_RETRIES; attempt++)
+            {
+                bool isOpen = IsCameraOpened(cameraSource);
+                if (isOpen)
+                {
+                    Debug.Log($"Camera opened successfully on attempt {attempt}");
+                    yield break;
+                }
+
+                Debug.LogWarning($"Camera not opened, attempt {attempt}/{MAX_CAMERA_OPEN_RETRIES}");
+
+                if (attempt < MAX_CAMERA_OPEN_RETRIES)
+                {
+                    Exception retryError = null;
+                    cameraSource.Close();
+                    yield return new WaitForSeconds(0.5f);
+
+                    try
+                    {
+                        cameraSource.Open();
+                    }
+                    catch (Exception ex)
+                    {
+                        retryError = ex;
+                        Debug.LogError($"Error retrying camera open: {ex.Message}");
+                    }
+
+                    yield return new WaitForSeconds(RETRY_DELAY_SECONDS);
+
+                    if (retryError != null && attempt >= MAX_CAMERA_OPEN_RETRIES - 1)
+                    {
+                        Debug.LogError(
+                            $"Failed to open camera after {MAX_CAMERA_OPEN_RETRIES} attempts"
+                        );
+                    }
+                }
+            }
+
+            Debug.LogError($"Failed to open camera after {MAX_CAMERA_OPEN_RETRIES} attempts");
+        }
+
+        private bool IsCameraOpened(CameraDeviceFrameSource cameraSource)
+        {
+            if (cameraSource == null || cameraSource.Device == null)
+                return false;
+
+            try
+            {
+                using (var parameters = cameraSource.Device.cameraParameters())
+                {
+                    return parameters != null;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private IObservable<UniRx.Unit> RestartCameraAsync()
+        {
+            return Observable.FromCoroutine<UniRx.Unit>(
+                observer => RestartCameraCoroutine(observer)
+            );
+        }
+
+        private IEnumerator RestartCameraCoroutine(IObserver<UniRx.Unit> observer)
+        {
+            if (isRestarting)
+            {
+                Debug.LogWarning("Camera restart already in progress, skipping...");
+                observer.OnCompleted();
+                yield break;
+            }
+
+            isRestarting = true;
+            Exception caughtException = null;
+
+            var cameraDevice = GameObject.Find("Camera Device");
+            CameraDeviceFrameSource cameraSource = null;
+            if (cameraDevice)
+            {
+                cameraSource = cameraDevice.GetComponent<CameraDeviceFrameSource>();
+            }
+
+            Debug.Log("Starting camera hot-swap process...");
+
+            if (cameraSource != null)
+            {
+                Debug.Log("Closing old camera device...");
+                cameraSource.Close();
+                yield return new WaitForSeconds(0.3f);
+            }
+
+            if (cameraDevice)
+                cameraDevice.SetActive(false);
+            if (EasyARController.Instance)
+                EasyARController.Instance.gameObject.SetActive(false);
+
+            yield return new WaitForSeconds(0.2f);
+
+            if (EasyARController.Initialized)
+            {
+                Debug.Log("Deinitializing EasyAR...");
+                try
+                {
+                    EasyARController.Deinitialize();
+                }
+                catch (Exception ex)
+                {
+                    caughtException = ex;
+                }
+                yield return new WaitForSeconds(1.5f);
+            }
+
+            if (caughtException == null)
+            {
+                Debug.Log("Reinitializing EasyAR...");
+                try
+                {
+                    EasyARController.Initialize();
+                }
+                catch (Exception ex)
+                {
+                    caughtException = ex;
+                }
+                yield return new WaitForSeconds(0.5f);
+            }
+
+            if (caughtException == null)
+            {
+                if (EasyARController.Instance)
+                {
+                    EasyARController.Instance.ShowPopupMessage = false;
+                    EasyARController.Instance.gameObject.SetActive(true);
+                }
+
+                yield return null;
+
+                if (cameraDevice)
+                {
+                    cameraDevice.SetActive(true);
+                    yield return null;
+
+                    if (cameraSource != null)
+                    {
+                        bool cameraOpened = false;
+                        for (int attempt = 1; attempt <= MAX_CAMERA_OPEN_RETRIES; attempt++)
+                        {
+                            Debug.Log(
+                                $"Opening camera device, attempt {attempt}/{MAX_CAMERA_OPEN_RETRIES}..."
+                            );
+
+                            Exception openError = null;
+                            try
+                            {
+                                cameraSource.Open();
+                            }
+                            catch (Exception ex)
+                            {
+                                openError = ex;
+                                Debug.LogWarning(
+                                    $"Camera open attempt {attempt} failed: {ex.Message}"
+                                );
+                            }
+
+                            yield return new WaitForSeconds(1f);
+
+                            if (IsCameraOpened(cameraSource))
+                            {
+                                Debug.Log($"Camera opened successfully on attempt {attempt}");
+                                cameraOpened = true;
+                                break;
+                            }
+                            else
+                            {
+                                Debug.LogWarning($"Camera device not ready on attempt {attempt}");
+                                if (attempt < MAX_CAMERA_OPEN_RETRIES)
+                                {
+                                    cameraSource.Close();
+                                    yield return new WaitForSeconds(RETRY_DELAY_SECONDS);
+                                }
+                                else if (openError != null)
+                                {
+                                    caughtException = openError;
+                                }
+                            }
+                        }
+
+                        if (!cameraOpened && caughtException == null)
+                        {
+                            caughtException = new Exception(
+                                $"Failed to open camera after {MAX_CAMERA_OPEN_RETRIES} attempts"
+                            );
+                        }
+                    }
+                }
+
+                yield return new WaitForSeconds(0.5f);
+            }
+
+            isRestarting = false;
+
+            if (caughtException != null)
+            {
+                Debug.LogError(
+                    $"Error during camera hot-swap: {caughtException.Message}\n{caughtException.StackTrace}"
+                );
+                observer.OnError(caughtException);
+            }
+            else
+            {
+                Debug.Log("Camera hot-swap completed successfully.");
+                observer.OnNext(UniRx.Unit.Default);
+                observer.OnCompleted();
+            }
         }
     }
 }
